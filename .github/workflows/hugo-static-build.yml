@@ -1,0 +1,46 @@
+name: hugo static build
+
+on:
+  push:
+    branches:
+      - main  # Set a branch to deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+
+      - name: Setup GO SDK
+        shell: bash
+        run: |
+          export version="1.18.10"
+          sudo rm -f go${version}.linux-amd64.tar.gz || echo true
+          sudo wget https://dl.google.com/go/go${version}.linux-amd64.tar.gz 
+          sudo tar -C /usr/local -xzf go${version}.linux-amd64.tar.gz && rm -f go${version}.linux-amd64.tar.gz
+
+      - name: Setup Hugo
+        shell: bash
+        run: |
+          export GOPATH=$HOME/go
+          export GOROOT=/usr/local/go
+          export GOBIN=/usr/local/bin
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+          CGO_ENABLED=1 go install --tags extended github.com/gohugoio/hugo@latest
+
+      - name: Build WebSite
+        run: |
+          export PATH=$PATH:/usr/local/bin
+          sudo hugo --minify --buildDrafts
+
+      - name: Auto Submit
+        shell: bash
+        run: |
+          git config user.name shenlan
+          git config user.email manbuzhe2009@qq.com
+          git pull
+          git add -A
+          git commit -a -m "Auto Submit"
+          git push
