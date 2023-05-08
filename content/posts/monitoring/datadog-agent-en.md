@@ -12,11 +12,22 @@ To monitor a Kubernetes cluster with Datadog, we first need to install the Datad
 
 Datadog Agent Deployment and Configuration by helm:
 
+
+3. Create datadog-agent secret
+
+Create a namespace named dadadog, and deploy the desired datadog-agent microservice in the corresponding namespace.
+
 ```
-helm repo add datadog https://helm.datadoghq.com
-helm repo update
+kubectl create namespace datadog
+kubectl delete secret datadog-agent --namespace=datadog || echo true
+kubectl create secret generic datadog-agent --from-literal api-key='xxxxxxxxxxxxxxxxxxxx --namespace=datadog
+```
+
+The key corresponding to datadog-agent needs to be generated on the datadog page, and then imported.
+
+```
 cat > datadog-values.yaml << EOF
-targetSystem: "linux"    #选择datadog-agent部署环境
+targetSystem: "linux"
 registry: artifact.onwalk.net/public/datadog
 clusterAgent:
   enabled: true
@@ -30,13 +41,16 @@ datadog:
     enabled: true
     containerCollectAll: true
   apm:
-    portEnabled: true   #代理配置为通过 TCP 接收跟踪。
+    portEnabled: true
   networkMonitoring:
     enabled: true
   env:
     - name: DD_APM_FEATURES
       value: 'enale_cid_stats'
 EOF
+
+helm repo add datadog https://helm.datadoghq.com
+helm repo update
 helm upgrade --install datadog-agent -n datadog --create-namespace -f datadog-values.yaml datadog/datadog
 ```
 
@@ -46,6 +60,7 @@ Datadog Web Console : https://app.datadoghq.eu/account/login/
 This is because the APM agent running in the container communicates with the Datadog cluster agent through the TCP port. 
 * datadog.apm.portEnabledtrue If the operating system is not set in , add it to this command. helm upgrade -f values.yaml <RELEASE NAME> datadog/datadogvalues.yaml --set targetSystem=linux --set targetSystem=windows
 Warning: This parameter will open a port on the host. Make sure your firewall only allows access from applications or trusted sources. If your network plugin does not support , add a proxy pod specification. This shares the host's network namespace with the Datadog agent. This also means that all ports opened on the container are also opened on the host. If ports are used in both the host and the container, they will conflict (since they share the same network namespace) and the Pod will not start.
+
 
 # Testing
 
